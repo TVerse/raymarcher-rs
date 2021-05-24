@@ -1,0 +1,17 @@
+[package]
+name = "raymarcher-rs"
+version = "0.1.0"
+authors = ["Tim Evers <29369097+TVerse@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+derive_more = "0.99.14"
+itertools = "0.10.0"
+num-traits = "0.2.14"
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+quickcheck_macros = "1.0.0"
+float-cmp = "0.8.0"
