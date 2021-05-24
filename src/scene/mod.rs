@@ -4,7 +4,7 @@ pub mod scenemap;
 use crate::primitives::Color;
 use crate::scene::camera::Camera;
 use crate::scene::scenemap::SceneMap;
-use crate::{Ray, constants};
+use crate::{constants, Ray};
 use num_traits::Float;
 
 pub struct Scene<'a, F> {

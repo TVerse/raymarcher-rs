@@ -1,6 +1,6 @@
-use crate::primitives::{Point3, Ray, Vec3};
+use crate::primitives::{Point3, Vec3};
+use crate::{constants, Ray};
 use num_traits::Float;
-use crate::constants;
 
 pub struct Camera<F> {
     pub origin: Point3<F>,

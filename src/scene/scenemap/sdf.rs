@@ -1,11 +1,7 @@
-use crate::primitives::{Point3, UnitVec3};
-use crate::Vec3;
 use num_traits::Float;
 
-pub struct SceneMap<'a, F> {
-    pub sdf: Box<dyn Sdf<F> + 'a>,
-    //material: Material,
-}
+use crate::primitives::{Point3, UnitVec3};
+use crate::Vec3;
 
 pub trait Sdf<F> {
     fn value_at(&self, p: &Point3<F>) -> F;
@@ -47,7 +43,7 @@ impl<'a, F: Float> dyn Sdf<F> + 'a {
                 ..p.0
             })),
         }
-        .unit()
+            .unit()
     }
 }
 
@@ -100,5 +96,43 @@ pub struct Intersect<'a, A, B> {
 impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Intersect<'a, A, B> {
     fn value_at(&self, p: &Point3<F>) -> F {
         self.a.value_at(p).max(self.b.value_at(p))
+    }
+}
+
+pub struct ScaleUniform<'a, A, F> {
+    pub a: &'a A,
+    pub f: F,
+}
+
+impl<'a, F: Float, A: Sdf<F>> Sdf<F> for ScaleUniform<'a, A, F> {
+    fn value_at(&self, p: &Point3<F>) -> F {
+        self.a.value_at(&Point3(p.as_ref() / self.f)) * self.f
+    }
+}
+
+pub struct Arbitrary<S> {
+    pub s: S,
+}
+
+impl<'a, F, S> Sdf<F> for Arbitrary<S>
+    where S: (Fn(&Point3<F>) -> F) + 'a
+{
+    fn value_at(&self, p: &Point3<F>) -> F {
+        (self.s)(p)
+    }
+}
+
+pub mod halfplane {
+    use num_traits::Float;
+
+    use crate::Point3;
+    use crate::scene::scenemap::sdf::Sdf;
+
+    struct NegY;
+
+    impl<F: Float> Sdf<F> for NegY {
+        fn value_at(&self, p: &Point3<F>) -> F {
+            p.0.y
+        }
     }
 }

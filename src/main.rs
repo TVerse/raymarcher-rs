@@ -3,7 +3,8 @@ use std::io::{BufWriter, Write};
 use std::time::Instant;
 
 use raymarcher_rs::scene::camera::Camera;
-use raymarcher_rs::scene::scenemap::{Intersect, SceneMap, Translate, Union, UnitCube, UnitSphere};
+use raymarcher_rs::scene::scenemap::sdf::{Intersect, Translate, Union, UnitCube, UnitSphere, Arbitrary, ScaleUniform};
+use raymarcher_rs::scene::scenemap::SceneMap;
 use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
 use raymarcher_rs::{
     render, Color, Config, ImageSettings, MaterialOverride, Point3, RGBColor, RenderSettings, Vec3,
@@ -30,22 +31,38 @@ fn main() -> std::io::Result<()> {
         },
     };
 
-    let sphere = UnitSphere;
-    let translated_sphere = Translate {
-        a: &sphere,
-        v: &Vec3::new(0.0, 1.0, 0.0),
+    let floor = Arbitrary{
+        s: {
+            |p: &Point3<f64>| {
+                let v: &Vec3<f64> = &p.0;
+                v.y - (v.x.sin() + v.z.sin())
+            }
+        }
     };
-    let spheres = Intersect {
-        a: &sphere,
-        b: &translated_sphere,
+
+    let scaled_floor = ScaleUniform {
+        a: &floor,
+        f: 0.1,
     };
-    let cube = UnitCube;
-    let sdf = Union {
-        a: &Translate {
-            a: &spheres,
-            v: &Vec3::new(1.0, 0.0, 0.0),
+
+    let sdf = Union  {
+        a: &Union{
+            a:&UnitCube,
+            b: &Translate{
+                a: &Intersect {
+                    a: &UnitSphere,
+                    b: &Translate {
+                        a: &ScaleUniform {
+                            a: &scaled_floor,
+                            f: 2.0,
+                        },
+                        v: &Vec3::new(0.0, 0.5, 0.0),
+                    }
+                },
+                v: &Vec3::new(0.0, 1.5, 0.0),
+            }
         },
-        b: &cube,
+        b: &scaled_floor,
     };
 
     let scene = Scene {

@@ -5,8 +5,9 @@ mod raymarcher;
 pub mod scene;
 
 use num_traits::Float;
-pub use primitives::{Color, Point3, Ray, Vec3};
+pub use primitives::{Color, Point3, Vec3};
 pub use raymarcher::render;
+pub use raymarcher::Ray;
 
 mod constants {
     use num_traits::Float;
