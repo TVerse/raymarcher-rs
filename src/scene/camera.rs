@@ -1,5 +1,6 @@
 use crate::primitives::{Point3, Ray, Vec3};
 use num_traits::Float;
+use crate::constants;
 
 pub struct Camera<F> {
     pub origin: Point3<F>,
@@ -16,8 +17,8 @@ impl<F: Float> Camera<F> {
         vfov: F,
         aspect_ratio: F,
     ) -> Self {
-        let two = F::one() + F::one();
         let theta = vfov.to_radians();
+        let two = constants::two();
         let h = (theta / two).tan();
         let viewport_height = two * h;
         let viewport_width = aspect_ratio * viewport_height;

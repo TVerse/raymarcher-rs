@@ -14,3 +14,7 @@ num-traits = "0.2.14"
 [dev-dependencies]
 proptest = "1.0.0"
 float-cmp = "0.8.0"
+
+[profile.release]
+lto = "thin"
+opt-level = 3

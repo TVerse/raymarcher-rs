@@ -1,7 +1,7 @@
 use crate::primitives::Color;
 use crate::scene::scenemap::Sdf;
 use crate::scene::Scene;
-use crate::{Config, ImageSettings, MaterialOverride, Point3, Ray, RenderSettings};
+use crate::{Config, ImageSettings, MaterialOverride, Point3, Ray, RenderSettings, constants};
 use itertools::Itertools;
 use num_traits::Float;
 
@@ -53,8 +53,7 @@ fn generate_pixel<'a, F: Float>(
         |DepthResult { point, .. }| match render_settings.material_override {
             Some(MaterialOverride::Normal) => {
                 let normal = scene_map.sdf.estimate_normal(point);
-                let half = F::one() / (F::one() + F::one());
-                (Color::white() + Color(normal.0)) * half
+                (Color::white() + Color(normal.0)) * constants::half()
             }
             None => Color::purple(),
         },

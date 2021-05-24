@@ -4,7 +4,7 @@ pub mod scenemap;
 use crate::primitives::Color;
 use crate::scene::camera::Camera;
 use crate::scene::scenemap::SceneMap;
-use crate::Ray;
+use crate::{Ray, constants};
 use num_traits::Float;
 
 pub struct Scene<'a, F> {
@@ -24,7 +24,7 @@ pub struct VerticalGradientBackground<F> {
 
 impl<F: Float> Background<F> for VerticalGradientBackground<F> {
     fn value_at(&self, r: &Ray<F>) -> Color<F> {
-        let t = (F::one() / (F::one() + F::one())) * (r.direction.unit().as_ref().y + F::one());
+        let t = constants::half::<F>() * (r.direction.unit().as_ref().y + F::one());
         &self.from * (F::one() - t) + &self.to * t
     }
 }

@@ -8,6 +8,18 @@ use num_traits::Float;
 pub use primitives::{Color, Point3, Ray, Vec3};
 pub use raymarcher::render;
 
+mod constants {
+    use num_traits::Float;
+
+    pub fn two<F: Float>() -> F {
+        F::one() + F::one()
+    }
+
+    pub fn half<F: Float>() -> F {
+        F::one() / two()
+    }
+}
+
 pub struct Config<F> {
     pub image_settings: ImageSettings,
     pub render_settings: RenderSettings<F>,
