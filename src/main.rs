@@ -3,7 +3,9 @@ use std::io::{BufWriter, Write};
 use std::time::Instant;
 
 use raymarcher_rs::scene::camera::Camera;
-use raymarcher_rs::scene::scenemap::sdf::{Intersect, Translate, Union, UnitCube, UnitSphere, Arbitrary, ScaleUniform};
+use raymarcher_rs::scene::scenemap::sdf::{
+    Arbitrary, Intersect, ScaleUniform, Translate, Union, UnitCube, UnitSphere,
+};
 use raymarcher_rs::scene::scenemap::SceneMap;
 use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
 use raymarcher_rs::{
@@ -31,24 +33,21 @@ fn main() -> std::io::Result<()> {
         },
     };
 
-    let floor = Arbitrary{
+    let floor = Arbitrary {
         s: {
             |p: &Point3<f64>| {
                 let v: &Vec3<f64> = &p.0;
                 v.y - (v.x.sin() + v.z.sin())
             }
-        }
+        },
     };
 
-    let scaled_floor = ScaleUniform {
-        a: &floor,
-        f: 0.1,
-    };
+    let scaled_floor = ScaleUniform { a: &floor, f: 0.1 };
 
-    let sdf = Union  {
-        a: &Union{
-            a:&UnitCube,
-            b: &Translate{
+    let sdf = Union {
+        a: &Union {
+            a: &UnitCube,
+            b: &Translate {
                 a: &Intersect {
                     a: &UnitSphere,
                     b: &Translate {
@@ -57,10 +56,10 @@ fn main() -> std::io::Result<()> {
                             f: 2.0,
                         },
                         v: &Vec3::new(0.0, 0.5, 0.0),
-                    }
+                    },
                 },
                 v: &Vec3::new(0.0, 1.5, 0.0),
-            }
+            },
         },
         b: &scaled_floor,
     };

@@ -43,7 +43,7 @@ impl<'a, F: Float> dyn Sdf<F> + 'a {
                 ..p.0
             })),
         }
-            .unit()
+        .unit()
     }
 }
 
@@ -115,7 +115,8 @@ pub struct Arbitrary<S> {
 }
 
 impl<'a, F, S> Sdf<F> for Arbitrary<S>
-    where S: (Fn(&Point3<F>) -> F) + 'a
+where
+    S: (Fn(&Point3<F>) -> F) + 'a,
 {
     fn value_at(&self, p: &Point3<F>) -> F {
         (self.s)(p)
@@ -125,8 +126,8 @@ impl<'a, F, S> Sdf<F> for Arbitrary<S>
 pub mod halfplane {
     use num_traits::Float;
 
-    use crate::Point3;
     use crate::scene::scenemap::sdf::Sdf;
+    use crate::Point3;
 
     struct NegY;
 

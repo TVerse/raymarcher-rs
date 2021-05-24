@@ -1,5 +1,5 @@
-use std::ops::{Add, Mul};
 use num_traits::Float;
+use std::ops::{Add, Mul};
 
 mod vec;
 pub use vec::Vec3;
