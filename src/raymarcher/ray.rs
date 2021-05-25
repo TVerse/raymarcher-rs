@@ -1,65 +1,73 @@
 use crate::scene::scenemap::material::MaterialIndex;
 use crate::scene::scenemap::sdf::Sdf;
 use crate::{Point3, Vec3};
-use num_traits::Float;
 
-pub struct Ray<F> {
-    pub origin: Point3<F>,
-    pub direction: Vec3<F>,
+pub struct Ray {
+    pub origin: Point3,
+    pub direction: Vec3,
 }
 
-impl<F: Float> Ray<F> {
+impl Ray {
     pub fn find_target(
         &self,
-        find_target_settings: &FindTargetSettings<F>,
-        sdf: &dyn Sdf<F>,
-    ) -> Option<(Point3<F>, Option<MaterialIndex>)> {
+        find_target_settings: &FindTargetSettings,
+        sdf: &dyn Sdf,
+    ) -> Option<(Point3, Option<MaterialIndex>)> {
         DepthIterator {
             sdf,
             r: &self,
             cur_depth: find_target_settings.t_min,
         }
         .into_iter()
-        .take(find_target_settings.max_marching_steps)
-        .filter(|DepthResult { total_depth, .. }| total_depth < &find_target_settings.t_max)
-        .find(|DepthResult { dist, .. }| dist.abs() < find_target_settings.epsilon)
+        .take_while(|DepthResult { total_depth, .. }| total_depth < &find_target_settings.t_max)
+        .find(|DepthResult { dist, .. }| *dist < find_target_settings.epsilon)
         .map(|dr| (dr.point, dr.mat_idx))
+    }
+
+    pub fn is_shadow(&self, find_target_settings: &FindTargetSettings, sdf: &dyn Sdf) -> bool {
+        DepthIterator{
+            sdf,
+            r: &self,
+            cur_depth: find_target_settings.t_min
+        }
+            .into_iter()
+            .take_while(|DepthResult { total_depth, .. }| total_depth < &find_target_settings.t_max)
+            .find(|DepthResult{dist, ..}| *dist < find_target_settings.epsilon)
+            .is_some()
     }
 }
 
-pub struct FindTargetSettings<F> {
-    t_min: F,
-    t_max: F,
-    epsilon: F,
-    max_marching_steps: usize,
+pub struct FindTargetSettings {
+    pub t_min: f64,
+    pub t_max: f64,
+    pub epsilon: f64,
 }
 
-impl<F> FindTargetSettings<F> {
-    pub fn new(t_min: F, t_max: F, epsilon: F, max_marching_steps: usize) -> Self {
+impl FindTargetSettings {
+    pub fn new(t_min: f64, t_max: f64, epsilon: f64) -> Self {
         Self {
             t_min,
             t_max,
             epsilon,
-            max_marching_steps,
         }
     }
 }
 
-struct DepthIterator<'a, F> {
-    sdf: &'a dyn Sdf<F>,
-    r: &'a Ray<F>,
-    cur_depth: F,
+struct DepthIterator<'a> {
+    sdf: &'a dyn Sdf,
+    r: &'a Ray,
+    cur_depth: f64,
 }
 
-struct DepthResult<F> {
-    point: Point3<F>,
-    dist: F,
+struct DepthResult {
+    point: Point3,
+    dist: f64,
     mat_idx: Option<MaterialIndex>,
-    total_depth: F,
+    total_depth: f64,
 }
 
-impl<'a, F: Float> Iterator for DepthIterator<'a, F> {
-    type Item = DepthResult<F>;
+impl<'a> Iterator for DepthIterator<'a> {
+    type Item = DepthResult;
 
     fn next(&mut self) -> Option<Self::Item> {
         let point = Point3(self.r.origin.as_ref() + &self.r.direction * self.cur_depth);

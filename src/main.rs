@@ -5,19 +5,18 @@ use std::time::Instant;
 
 use raymarcher_rs::scene::camera::Camera;
 use raymarcher_rs::scene::scenemap::lights::{AmbientLight, Light};
-use raymarcher_rs::scene::scenemap::material::{MaterialIndex, MaterialList, SingleColorMaterial};
+use raymarcher_rs::scene::scenemap::material::{MaterialList, SingleColorMaterial};
 use raymarcher_rs::scene::scenemap::sdf::{
-    Arbitrary, Intersect, ScaleUniform, Sdf, Subtract, Translate, Union, UnitCube, UnitSphere,
-    WithMaterial,
+    Arbitrary, Intersect, ScaleUniform, Translate, Union, UnitCube, UnitSphere, WithMaterial, halfplane
 };
 use raymarcher_rs::scene::scenemap::SceneMap;
-use raymarcher_rs::scene::{ConstantBackground, Scene, VerticalGradientBackground};
+use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
 use raymarcher_rs::{render, Color, Config, ImageSettings, Point3, RGBColor, RenderSettings, Vec3};
 
 fn main() -> std::io::Result<()> {
     let start = Instant::now();
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 800;
+    let image_width = 1200;
     let image_height = (image_width as f64 / aspect_ratio) as usize;
 
     let mut material_list = MaterialList::new();
@@ -30,41 +29,41 @@ fn main() -> std::io::Result<()> {
     }));
     let red = material_list.insert(Box::new(SingleColorMaterial {
         specular: Color::new(0.9, 0.1, 0.1),
-        diffuse: Color::new(0.9, 0.1, 0.1),
+        diffuse: Color::new(0.5, 0.5, 0.5),
         ambient: Color::new(0.9, 0.1, 0.1),
         shininess: 5.0,
     }));
 
-    let config: Config<f64> = Config::new(
+    let config: Config = Config::new(
         ImageSettings::new(image_width, image_height),
-        RenderSettings::new(0.001, 1000.0, 1e-5, 1000, None),
-        // RenderSettings::new(0.001, 1000.0, 1e-5, 500, None),
+        RenderSettings::new(0.001, 100.0, 1e-5, None),
+        // RenderSettings::new(0.001, 1000.0, 1e-5, None),
     );
 
     let camera = Camera::new(
-        Point3::new(0.0, 0.0, 0.0),
-        Point3::new(0.0, 1.5, 5.0),
+        Point3::new(0.0, 1.0, 0.0),
+        Point3::new(-2.0, 5.5, 5.0),
         Vec3::new(0.0, 1.0, 0.0),
-        60.0,
+        45.0,
         aspect_ratio,
     );
 
-    let infinite_floor = Arbitrary::new(|p| {
-        let v: &Vec3<f64> = &p.0;
+    let sine_wave = Arbitrary::new(|p| {
+        let v: &Vec3 = &p.0;
         // Divide by 2 is to reduce holes in the floor at the cost of slower rendering
         ((v.y - (v.x.sin() + v.z.sin())) / 2.0, None)
     });
 
-    let infinite_floor = Rc::new(ScaleUniform {
-        a: infinite_floor,
+    let sine_wave = Rc::new(ScaleUniform {
+        a: sine_wave,
         f: 0.1,
     });
 
     let floor = Intersect {
-        a: infinite_floor.clone(),
+        a: halfplane::NegY,
         b: ScaleUniform {
             a: UnitCube,
-            f: 50.0,
+            f: 10.0,
         },
     };
 
@@ -77,12 +76,15 @@ fn main() -> std::io::Result<()> {
             b: Translate {
                 a: Intersect {
                     a: WithMaterial {
-                        a: UnitSphere,
+                        a: ScaleUniform {
+                            a: UnitSphere,
+                            f: 0.9
+                        },
                         m: Some(white),
                     },
                     b: Translate {
                         a: ScaleUniform {
-                            a: infinite_floor,
+                            a: sine_wave,
                             f: 2.0,
                         },
                         v: Vec3::new(0.0, 0.5, 0.0),
@@ -94,7 +96,7 @@ fn main() -> std::io::Result<()> {
         b: floor,
     };
 
-    let ambient_light = AmbientLight::new(Color::new(0.5, 0.5, 0.5));
+    let ambient_light = AmbientLight::new(Color::new(0.2, 0.2, 0.2));
 
     let lights = vec![
         Light {
@@ -108,9 +110,9 @@ fn main() -> std::io::Result<()> {
             diffuse: Color::new(0.4, 0.4, 0.4),
         },
         Light {
-            location: Point3::new(3.0, 2.0, 0.0),
-            specular: Color::new(0.1, 0.1, 0.1),
-            diffuse: Color::new(0.1, 0.1, 0.9),
+            location: Point3::new(3.0, 2.0, 1.5),
+            specular: Color::new(0.5, 0.5, 0.5),
+            diffuse: Color::new(0.9, 0.9, 0.9),
         },
     ];
 

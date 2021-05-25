@@ -6,31 +6,17 @@ pub mod scene;
 
 use crate::raymarcher::FindTargetSettings;
 use crate::scene::scenemap::material::MaterialIndex;
-use num_traits::Float;
 pub use primitives::{Color, Point3, Vec3};
 pub use raymarcher::render;
 pub use raymarcher::Ray;
-use std::fmt::Debug;
 
-mod constants {
-    use num_traits::Float;
-
-    pub fn two<F: Float>() -> F {
-        F::one() + F::one()
-    }
-
-    pub fn half<F: Float>() -> F {
-        F::one() / two()
-    }
-}
-
-pub struct Config<F> {
+pub struct Config {
     image_settings: ImageSettings,
-    render_settings: RenderSettings<F>,
+    render_settings: RenderSettings,
 }
 
-impl<F> Config<F> {
-    pub fn new(image_settings: ImageSettings, render_settings: RenderSettings<F>) -> Self {
+impl Config {
+    pub fn new(image_settings: ImageSettings, render_settings: RenderSettings) -> Self {
         Self {
             image_settings,
             render_settings,
@@ -49,17 +35,16 @@ impl ImageSettings {
     }
 }
 
-pub struct RenderSettings<F> {
-    find_target_settings: FindTargetSettings<F>,
+pub struct RenderSettings {
+    find_target_settings: FindTargetSettings,
     material_override: Option<MaterialIndex>,
 }
 
-impl<F> RenderSettings<F> {
+impl RenderSettings {
     pub fn new(
-        t_min: F,
-        t_max: F,
-        epsilon: F,
-        max_marching_steps: usize,
+        t_min: f64,
+        t_max: f64,
+        epsilon: f64,
         material_override: Option<MaterialIndex>,
     ) -> Self {
         Self {
@@ -67,7 +52,6 @@ impl<F> RenderSettings<F> {
                 t_min,
                 t_max,
                 epsilon,
-                max_marching_steps,
             ),
             material_override,
         }
@@ -81,21 +65,21 @@ pub struct RGBColor {
 }
 
 impl RGBColor {
-    fn convert_to_rgb_byte<F: Float + Debug>(f: F) -> u8 {
-        let res: F = f * F::from(255.999).unwrap();
-        if res > F::from(255.0).unwrap() {
+    fn convert_to_rgb_byte(f: f64) -> u8 {
+        let res: f64 = f * 255.999;
+        if res > 255.0 {
             255
-        } else if res < F::zero() {
+        } else if res < 0.0 {
             0
         } else {
             // TODO NaN
-            res.to_u8().unwrap_or(0)
+            res as u8
         }
     }
 }
 
-impl<F: Float + Debug> From<Color<F>> for RGBColor {
-    fn from(c: Color<F>) -> Self {
+impl From<Color> for RGBColor {
+    fn from(c: Color) -> Self {
         Self {
             r: RGBColor::convert_to_rgb_byte(c.r()),
             g: RGBColor::convert_to_rgb_byte(c.g()),

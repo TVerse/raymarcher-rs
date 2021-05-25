@@ -233,7 +233,6 @@ dependencies = [
  "derive_more",
  "float-cmp",
  "itertools",
- "num-traits",
  "proptest",
 ]
 

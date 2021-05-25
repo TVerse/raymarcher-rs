@@ -4,37 +4,36 @@ pub mod scenemap;
 use crate::primitives::Color;
 use crate::scene::camera::Camera;
 use crate::scene::scenemap::SceneMap;
-use crate::{constants, Ray};
-use num_traits::Float;
+use crate::Ray;
 
-pub struct Scene<'a, F> {
-    pub camera: Camera<F>,
-    pub scene_map: SceneMap<'a, F>,
-    pub background: Box<dyn Background<F>>,
+pub struct Scene<'a> {
+    pub camera: Camera,
+    pub scene_map: SceneMap<'a>,
+    pub background: Box<dyn Background>,
 }
 
-pub trait Background<F> {
-    fn value_at(&self, r: &Ray<F>) -> Color<F>;
+pub trait Background {
+    fn value_at(&self, r: &Ray) -> Color;
 }
 
-pub struct VerticalGradientBackground<F> {
-    pub from: Color<F>,
-    pub to: Color<F>,
+pub struct VerticalGradientBackground {
+    pub from: Color,
+    pub to: Color,
 }
 
-impl<F: Float> Background<F> for VerticalGradientBackground<F> {
-    fn value_at(&self, r: &Ray<F>) -> Color<F> {
-        let t = constants::half::<F>() * (r.direction.unit().as_ref().y + F::one());
-        &self.from * (F::one() - t) + &self.to * t
+impl Background for VerticalGradientBackground {
+    fn value_at(&self, r: &Ray) -> Color {
+        let t = 0.5 * (r.direction.unit().as_ref().y + 1.0);
+        &self.from * (1.0 - t) + &self.to * t
     }
 }
 
-pub struct ConstantBackground<F> {
-    pub color: Color<F>,
+pub struct ConstantBackground {
+    pub color: Color,
 }
 
-impl<F: Float> Background<F> for ConstantBackground<F> {
-    fn value_at(&self, _r: &Ray<F>) -> Color<F> {
+impl Background for ConstantBackground {
+    fn value_at(&self, _r: &Ray) -> Color {
         self.color.clone()
     }
 }

@@ -1,30 +1,30 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::primitives::UnitVec3;
-use float_cmp::ApproxEq;
-use num_traits::Float;
+#[cfg(test)]
+use float_cmp::{ApproxEq, F64Margin};
 
 #[derive(Debug, Clone)]
-pub struct Vec3<F> {
-    pub x: F,
-    pub y: F,
-    pub z: F,
+pub struct Vec3 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
-impl<F: Float> Vec3<F> {
+impl Vec3 {
     pub fn zero() -> Self {
         Self {
-            x: F::zero(),
-            y: F::zero(),
-            z: F::zero(),
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
         }
     }
 
-    pub fn new(x: F, y: F, z: F) -> Self {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
     }
 
-    pub fn dot(&self, other: &Self) -> F {
+    pub fn dot(&self, other: &Self) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
@@ -36,15 +36,15 @@ impl<F: Float> Vec3<F> {
         }
     }
 
-    pub fn length_squared(&self) -> F {
+    pub fn length_squared(&self) -> f64 {
         self.dot(self)
     }
 
-    pub fn length(&self) -> F {
+    pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
 
-    pub fn unit(&self) -> UnitVec3<F> {
+    pub fn unit(&self) -> UnitVec3 {
         let length = self.length();
         UnitVec3(self / length)
     }
@@ -57,7 +57,7 @@ impl<F: Float> Vec3<F> {
         }
     }
 
-    pub fn max_component(&self) -> F {
+    pub fn max_component(&self) -> f64 {
         self.x.max(self.y.max(self.z))
     }
 
@@ -70,8 +70,9 @@ impl<F: Float> Vec3<F> {
     }
 }
 
-impl<'a, M: Copy + Default, F: Copy + ApproxEq<Margin = M>> ApproxEq for &'a Vec3<F> {
-    type Margin = M;
+#[cfg(test)]
+impl<'a> ApproxEq for &'a Vec3 {
+    type Margin = F64Margin;
 
     fn approx_eq<T: Into<Self::Margin>>(self, other: Self, margin: T) -> bool {
         let margin = margin.into();
@@ -81,8 +82,8 @@ impl<'a, M: Copy + Default, F: Copy + ApproxEq<Margin = M>> ApproxEq for &'a Vec
     }
 }
 
-impl<F: Float> Neg for Vec3<F> {
-    type Output = Vec3<F>;
+impl Neg for Vec3 {
+    type Output = Vec3;
 
     fn neg(self) -> Self::Output {
         Self::Output {
@@ -93,8 +94,8 @@ impl<F: Float> Neg for Vec3<F> {
     }
 }
 
-impl<F: Float> Neg for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Neg for &Vec3 {
+    type Output = Vec3;
 
     fn neg(self) -> Self::Output {
         Self::Output {
@@ -105,10 +106,10 @@ impl<F: Float> Neg for &Vec3<F> {
     }
 }
 
-impl<F: Float> Add<Vec3<F>> for Vec3<F> {
-    type Output = Vec3<F>;
+impl Add<Vec3> for Vec3 {
+    type Output = Vec3;
 
-    fn add(self, rhs: Vec3<F>) -> Self::Output {
+    fn add(self, rhs: Vec3) -> Self::Output {
         Self::Output {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -117,10 +118,10 @@ impl<F: Float> Add<Vec3<F>> for Vec3<F> {
     }
 }
 
-impl<F: Float> Add<Vec3<F>> for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Add<Vec3> for &Vec3 {
+    type Output = Vec3;
 
-    fn add(self, rhs: Vec3<F>) -> Self::Output {
+    fn add(self, rhs: Vec3) -> Self::Output {
         Self::Output {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -129,10 +130,10 @@ impl<F: Float> Add<Vec3<F>> for &Vec3<F> {
     }
 }
 
-impl<F: Float> Add<&Vec3<F>> for Vec3<F> {
-    type Output = Vec3<F>;
+impl Add<&Vec3> for Vec3 {
+    type Output = Vec3;
 
-    fn add(self, rhs: &Vec3<F>) -> Self::Output {
+    fn add(self, rhs: &Vec3) -> Self::Output {
         Self::Output {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -141,10 +142,10 @@ impl<F: Float> Add<&Vec3<F>> for Vec3<F> {
     }
 }
 
-impl<F: Float> Add<&Vec3<F>> for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Add<&Vec3> for &Vec3 {
+    type Output = Vec3;
 
-    fn add(self, rhs: &Vec3<F>) -> Self::Output {
+    fn add(self, rhs: &Vec3) -> Self::Output {
         Self::Output {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -153,10 +154,10 @@ impl<F: Float> Add<&Vec3<F>> for &Vec3<F> {
     }
 }
 
-impl<F: Float> Sub<Vec3<F>> for Vec3<F> {
-    type Output = Vec3<F>;
+impl Sub<Vec3> for Vec3 {
+    type Output = Vec3;
 
-    fn sub(self, rhs: Vec3<F>) -> Self::Output {
+    fn sub(self, rhs: Vec3) -> Self::Output {
         Self::Output {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -165,10 +166,10 @@ impl<F: Float> Sub<Vec3<F>> for Vec3<F> {
     }
 }
 
-impl<F: Float> Sub<&Vec3<F>> for Vec3<F> {
-    type Output = Vec3<F>;
+impl Sub<&Vec3> for Vec3 {
+    type Output = Vec3;
 
-    fn sub(self, rhs: &Vec3<F>) -> Self::Output {
+    fn sub(self, rhs: &Vec3) -> Self::Output {
         Self::Output {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -177,10 +178,10 @@ impl<F: Float> Sub<&Vec3<F>> for Vec3<F> {
     }
 }
 
-impl<F: Float> Sub<Vec3<F>> for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Sub<Vec3> for &Vec3 {
+    type Output = Vec3;
 
-    fn sub(self, rhs: Vec3<F>) -> Self::Output {
+    fn sub(self, rhs: Vec3) -> Self::Output {
         Self::Output {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -189,10 +190,10 @@ impl<F: Float> Sub<Vec3<F>> for &Vec3<F> {
     }
 }
 
-impl<F: Float> Sub<&Vec3<F>> for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Sub<&Vec3> for &Vec3 {
+    type Output = Vec3;
 
-    fn sub(self, rhs: &Vec3<F>) -> Self::Output {
+    fn sub(self, rhs: &Vec3) -> Self::Output {
         Self::Output {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -201,10 +202,10 @@ impl<F: Float> Sub<&Vec3<F>> for &Vec3<F> {
     }
 }
 
-impl<F: Float> Mul<F> for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Mul<f64> for &Vec3 {
+    type Output = Vec3;
 
-    fn mul(self, rhs: F) -> Self::Output {
+    fn mul(self, rhs: f64) -> Self::Output {
         Self::Output {
             x: self.x * rhs,
             y: self.y * rhs,
@@ -213,10 +214,10 @@ impl<F: Float> Mul<F> for &Vec3<F> {
     }
 }
 
-impl<F: Float> Div<F> for Vec3<F> {
-    type Output = Vec3<F>;
+impl Div<f64> for Vec3 {
+    type Output = Vec3;
 
-    fn div(self, rhs: F) -> Self::Output {
+    fn div(self, rhs: f64) -> Self::Output {
         Self::Output {
             x: self.x / rhs,
             y: self.y / rhs,
@@ -225,10 +226,10 @@ impl<F: Float> Div<F> for Vec3<F> {
     }
 }
 
-impl<F: Float> Div<F> for &Vec3<F> {
-    type Output = Vec3<F>;
+impl Div<f64> for &Vec3 {
+    type Output = Vec3;
 
-    fn div(self, rhs: F) -> Self::Output {
+    fn div(self, rhs: f64) -> Self::Output {
         Self::Output {
             x: self.x / rhs,
             y: self.y / rhs,
@@ -257,7 +258,7 @@ mod tests {
     };
 
     prop_compose! {
-        fn arb_vec3()(x in -10.0..10.0, y in -10.0..10.0, z in -10.0..10.0) -> Vec3<f64> {
+        fn arb_vec3()(x in -10.0..10.0, y in -10.0..10.0, z in -10.0..10.0) -> Vec3 {
             Vec3{
                 x,
                 y,
@@ -349,7 +350,7 @@ mod tests {
     #[bench]
     fn length(b: &mut Bencher) {
         b.iter(|| {
-            let v: Vec3<f64> = Vec3::new(1.0, 2.0, -3.0);
+            let v: Vec3 = Vec3::new(1.0, 2.0, -3.0);
             black_box(v).length()
         });
     }
@@ -357,7 +358,7 @@ mod tests {
     #[bench]
     fn unit(b: &mut Bencher) {
         b.iter(|| {
-            let v: Vec3<f64> = Vec3::new(1.0, 2.0, -3.0);
+            let v: Vec3 = Vec3::new(1.0, 2.0, -3.0);
             black_box(v).unit()
         });
     }
@@ -365,8 +366,8 @@ mod tests {
     #[bench]
     fn dot(b: &mut Bencher) {
         b.iter(|| {
-            let v: Vec3<f64> = Vec3::new(1.0, 2.0, -3.0);
-            let w: Vec3<f64> = Vec3::new(-10.0, 8.2, 4.6);
+            let v: Vec3 = Vec3::new(1.0, 2.0, -3.0);
+            let w: Vec3 = Vec3::new(-10.0, 8.2, 4.6);
             black_box(v).dot(black_box(&w))
         });
     }
@@ -374,8 +375,8 @@ mod tests {
     #[bench]
     fn cross(b: &mut Bencher) {
         b.iter(|| {
-            let v: Vec3<f64> = Vec3::new(1.0, 2.0, -3.0);
-            let w: Vec3<f64> = Vec3::new(-10.0, 8.2, 4.6);
+            let v: Vec3 = Vec3::new(1.0, 2.0, -3.0);
+            let w: Vec3 = Vec3::new(-10.0, 8.2, 4.6);
             black_box(v).cross(black_box(&w))
         });
     }

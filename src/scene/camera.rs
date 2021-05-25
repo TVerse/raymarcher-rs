@@ -1,26 +1,18 @@
 use crate::primitives::{Point3, Vec3};
-use crate::{constants, Ray};
-use num_traits::Float;
+use crate::Ray;
 
-pub struct Camera<F> {
-    pub origin: Point3<F>,
-    pub lower_left_corner: Point3<F>,
-    pub horizontal: Vec3<F>,
-    pub vertical: Vec3<F>,
+pub struct Camera {
+    pub origin: Point3,
+    pub lower_left_corner: Point3,
+    pub horizontal: Vec3,
+    pub vertical: Vec3,
 }
 
-impl<F: Float> Camera<F> {
-    pub fn new(
-        look_at: Point3<F>,
-        look_from: Point3<F>,
-        up: Vec3<F>,
-        vfov: F,
-        aspect_ratio: F,
-    ) -> Self {
+impl Camera {
+    pub fn new(look_at: Point3, look_from: Point3, up: Vec3, vfov: f64, aspect_ratio: f64) -> Self {
         let theta = vfov.to_radians();
-        let two = constants::two();
-        let h = (theta / two).tan();
-        let viewport_height = two * h;
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
         let w = (look_from.as_ref() - look_at.as_ref()).unit();
@@ -31,7 +23,7 @@ impl<F: Float> Camera<F> {
         let vertical = v.as_ref() * viewport_height;
 
         let lower_left_corner =
-            look_from.as_ref() - &horizontal / two - &vertical / two - w.as_ref();
+            look_from.as_ref() - &horizontal / 2.0 - &vertical / 2.0 - w.as_ref();
         let lower_left_corner = lower_left_corner.into();
 
         Self {
@@ -42,7 +34,7 @@ impl<F: Float> Camera<F> {
         }
     }
 
-    pub fn get_ray(&self, u: F, v: F) -> Ray<F> {
+    pub fn get_ray(&self, u: f64, v: f64) -> Ray {
         let origin = (&self.origin).clone();
         let direction = self.lower_left_corner.as_ref() + &self.horizontal * u + &self.vertical * v
             - self.origin.as_ref();

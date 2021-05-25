@@ -5,9 +5,9 @@ pub mod lights;
 pub mod material;
 pub mod sdf;
 
-pub struct SceneMap<'a, F> {
-    pub sdf: &'a dyn Sdf<F>,
-    pub materials: &'a material::MaterialList<F>,
-    pub ambient_light: AmbientLight<F>,
-    pub lights: &'a [Light<F>],
+pub struct SceneMap<'a> {
+    pub sdf: &'a dyn Sdf,
+    pub materials: &'a material::MaterialList,
+    pub ambient_light: AmbientLight,
+    pub lights: &'a [Light],
 }
