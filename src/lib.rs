@@ -5,10 +5,12 @@ mod raymarcher;
 pub mod scene;
 
 use crate::raymarcher::FindTargetSettings;
+use crate::scene::scenemap::material::MaterialIndex;
 use num_traits::Float;
 pub use primitives::{Color, Point3, Vec3};
 pub use raymarcher::render;
 pub use raymarcher::Ray;
+use std::fmt::Debug;
 
 mod constants {
     use num_traits::Float;
@@ -49,7 +51,7 @@ impl ImageSettings {
 
 pub struct RenderSettings<F> {
     find_target_settings: FindTargetSettings<F>,
-    material_override: Option<MaterialOverride>,
+    material_override: Option<MaterialIndex>,
 }
 
 impl<F> RenderSettings<F> {
@@ -58,7 +60,7 @@ impl<F> RenderSettings<F> {
         t_max: F,
         epsilon: F,
         max_marching_steps: usize,
-        material_override: Option<MaterialOverride>,
+        material_override: Option<MaterialIndex>,
     ) -> Self {
         Self {
             find_target_settings: FindTargetSettings::new(
@@ -72,10 +74,6 @@ impl<F> RenderSettings<F> {
     }
 }
 
-pub enum MaterialOverride {
-    Normal,
-}
-
 pub struct RGBColor {
     pub r: u8,
     pub g: u8,
@@ -83,19 +81,20 @@ pub struct RGBColor {
 }
 
 impl RGBColor {
-    fn convert_to_rgb_byte<F: Float>(f: F) -> u8 {
+    fn convert_to_rgb_byte<F: Float + Debug>(f: F) -> u8 {
         let res: F = f * F::from(255.999).unwrap();
-        if res >= F::from(256.0).unwrap() {
+        if res > F::from(255.0).unwrap() {
             255
         } else if res < F::zero() {
             0
         } else {
-            res.to_u8().unwrap()
+            // TODO NaN
+            res.to_u8().unwrap_or(0)
         }
     }
 }
 
-impl<F: Float> From<Color<F>> for RGBColor {
+impl<F: Float + Debug> From<Color<F>> for RGBColor {
     fn from(c: Color<F>) -> Self {
         Self {
             r: RGBColor::convert_to_rgb_byte(c.r()),

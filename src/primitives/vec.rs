@@ -1,7 +1,6 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::primitives::UnitVec3;
-#[cfg(test)]
 use float_cmp::ApproxEq;
 use num_traits::Float;
 
@@ -71,7 +70,6 @@ impl<F: Float> Vec3<F> {
     }
 }
 
-#[cfg(test)]
 impl<'a, M: Copy + Default, F: Copy + ApproxEq<Margin = M>> ApproxEq for &'a Vec3<F> {
     type Margin = M;
 

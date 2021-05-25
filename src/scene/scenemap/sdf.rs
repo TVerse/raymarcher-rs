@@ -3,11 +3,14 @@ use num_traits::Float;
 use crate::primitives::{Point3, UnitVec3};
 use crate::scene::scenemap::material::MaterialIndex;
 use crate::Vec3;
+use std::ops::Deref;
+use std::rc::Rc;
+use std::sync::Arc;
 
 pub trait Sdf<F: Float> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>);
 
-    fn estimate_normal(&self, p: Point3<F>) -> UnitVec3<F> {
+    fn estimate_normal(&self, p: &Point3<F>) -> UnitVec3<F> {
         let normal_epsilon: F = F::from(1e-5).unwrap();
         Vec3 {
             x: self
@@ -61,6 +64,25 @@ pub trait Sdf<F: Float> {
 //     }
 // }
 
+impl<F: Float, A: Sdf<F> + ?Sized> Sdf<F> for Box<A> {
+    fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
+        (self.deref()).value_at(p)
+    }
+}
+
+impl<F: Float, A: Sdf<F> + ?Sized> Sdf<F> for Rc<A> {
+    fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
+        (self.deref()).value_at(p)
+    }
+}
+
+impl<F: Float, A: Sdf<F> + ?Sized> Sdf<F> for Arc<A> {
+    fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
+        (self.deref()).value_at(p)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct UnitSphere;
 
 impl<F: Float> Sdf<F> for UnitSphere {
@@ -69,6 +91,7 @@ impl<F: Float> Sdf<F> for UnitSphere {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct UnitCube;
 
 impl<F: Float> Sdf<F> for UnitCube {
@@ -80,12 +103,13 @@ impl<F: Float> Sdf<F> for UnitCube {
     }
 }
 
-pub struct Union<'a, A, B> {
-    pub a: &'a A,
-    pub b: &'a B,
+#[derive(Debug, Clone)]
+pub struct Union<A, B> {
+    pub a: A,
+    pub b: B,
 }
 
-impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Union<'a, A, B> {
+impl<F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Union<A, B> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
         let da = self.a.value_at(p);
         let db = self.b.value_at(p);
@@ -97,23 +121,25 @@ impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Union<'a, A, B> {
     }
 }
 
-pub struct Translate<'a, F, A> {
-    pub a: &'a A,
-    pub v: &'a Vec3<F>,
+#[derive(Debug, Clone)]
+pub struct Translate<F, A> {
+    pub a: A,
+    pub v: Vec3<F>,
 }
 
-impl<'a, F: Float, A: Sdf<F>> Sdf<F> for Translate<'a, F, A> {
+impl<F: Float, A: Sdf<F>> Sdf<F> for Translate<F, A> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
-        self.a.value_at(&(p.as_ref() - self.v).into())
+        self.a.value_at(&(p.as_ref() - &self.v).into())
     }
 }
 
-pub struct Intersect<'a, A, B> {
-    pub a: &'a A,
-    pub b: &'a B,
+#[derive(Debug, Clone)]
+pub struct Intersect<A, B> {
+    pub a: A,
+    pub b: B,
 }
 
-impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Intersect<'a, A, B> {
+impl<F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Intersect<A, B> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
         let da = self.a.value_at(p);
         let db = self.b.value_at(p);
@@ -125,12 +151,13 @@ impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Intersect<'a, A, B> {
     }
 }
 
-pub struct Subtract<'a, A, B> {
-    pub a: &'a A,
-    pub b: &'a B,
+#[derive(Debug, Clone)]
+pub struct Subtract<A, B> {
+    pub a: A,
+    pub b: B,
 }
 
-impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Subtract<'a, A, B> {
+impl<F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Subtract<A, B> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
         let da = self.a.value_at(p);
         let db = self.b.value_at(p);
@@ -142,29 +169,32 @@ impl<'a, F: Float, A: Sdf<F>, B: Sdf<F>> Sdf<F> for Subtract<'a, A, B> {
     }
 }
 
-pub struct ScaleUniform<'a, A, F> {
-    pub a: &'a A,
+#[derive(Debug, Clone)]
+pub struct ScaleUniform<A, F> {
+    pub a: A,
     pub f: F,
 }
 
-impl<'a, F: Float, A: Sdf<F>> Sdf<F> for ScaleUniform<'a, A, F> {
+impl<F: Float, A: Sdf<F>> Sdf<F> for ScaleUniform<A, F> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
         let (f, m) = self.a.value_at(&Point3(p.as_ref() / self.f));
         (f * self.f, m)
     }
 }
 
-pub struct WithMaterial<'a, A> {
-    pub a: &'a A,
-    pub m: Option<MaterialIndex>
+#[derive(Debug, Clone)]
+pub struct WithMaterial<A> {
+    pub a: A,
+    pub m: Option<MaterialIndex>,
 }
 
-impl<'a, F: Float, A: Sdf<F>> Sdf<F> for WithMaterial<'a, A> {
+impl<F: Float, A: Sdf<F>> Sdf<F> for WithMaterial<A> {
     fn value_at(&self, p: &Point3<F>) -> (F, Option<MaterialIndex>) {
         (self.a.value_at(p).0, self.m)
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Arbitrary<S> {
     pub s: S,
 }
