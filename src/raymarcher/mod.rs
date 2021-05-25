@@ -5,6 +5,7 @@ use itertools::Itertools;
 use num_traits::Float;
 
 mod ray;
+pub use ray::FindTargetSettings;
 pub use ray::Ray;
 
 pub fn render<'a, F: Float>(
@@ -40,13 +41,18 @@ fn generate_pixel<'a, F: Float>(
         background,
     } = scene;
 
-    ray.find_target(&render_settings, scene_map.sdf.as_ref())
-        .map(|point| match render_settings.material_override {
+    ray.find_target(&render_settings.find_target_settings, scene_map.sdf)
+        .map(|(point, mat)| match render_settings.material_override {
             Some(MaterialOverride::Normal) => {
                 let normal = scene_map.sdf.estimate_normal(point);
                 (Color::white() + Color(normal.0)) * constants::half()
             }
-            None => Color::purple(),
+            None => {
+                mat
+                    .and_then(|m| scene_map.materials.get(m))
+                    .and_then(|m| m.value_at(&point, scene_map.sdf, &render_settings.find_target_settings))
+                    .unwrap_or(Color::purple())
+            },
         })
         .unwrap_or_else(|| background.value_at(&ray))
 }

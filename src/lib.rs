@@ -4,6 +4,7 @@ mod primitives;
 mod raymarcher;
 pub mod scene;
 
+use crate::raymarcher::FindTargetSettings;
 use num_traits::Float;
 pub use primitives::{Color, Point3, Vec3};
 pub use raymarcher::render;
@@ -22,22 +23,53 @@ mod constants {
 }
 
 pub struct Config<F> {
-    pub image_settings: ImageSettings,
-    pub render_settings: RenderSettings<F>,
+    image_settings: ImageSettings,
+    render_settings: RenderSettings<F>,
+}
+
+impl<F> Config<F> {
+    pub fn new(image_settings: ImageSettings, render_settings: RenderSettings<F>) -> Self {
+        Self {
+            image_settings,
+            render_settings,
+        }
+    }
 }
 
 pub struct ImageSettings {
-    pub width: usize,
-    pub height: usize,
+    width: usize,
+    height: usize,
+}
+
+impl ImageSettings {
+    pub fn new(width: usize, height: usize) -> Self {
+        Self { width, height }
+    }
 }
 
 pub struct RenderSettings<F> {
-    pub max_marching_steps: usize,
-    pub max_light_recursions: usize,
-    pub t_min: F,
-    pub t_max: F,
-    pub epsilon: F,
-    pub material_override: Option<MaterialOverride>,
+    find_target_settings: FindTargetSettings<F>,
+    material_override: Option<MaterialOverride>,
+}
+
+impl<F> RenderSettings<F> {
+    pub fn new(
+        t_min: F,
+        t_max: F,
+        epsilon: F,
+        max_marching_steps: usize,
+        material_override: Option<MaterialOverride>,
+    ) -> Self {
+        Self {
+            find_target_settings: FindTargetSettings::new(
+                t_min,
+                t_max,
+                epsilon,
+                max_marching_steps,
+            ),
+            material_override,
+        }
+    }
 }
 
 pub enum MaterialOverride {

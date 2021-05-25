@@ -28,3 +28,13 @@ impl<F: Float> Background<F> for VerticalGradientBackground<F> {
         &self.from * (F::one() - t) + &self.to * t
     }
 }
+
+pub struct ConstantBackground<F> {
+    pub color: Color<F>,
+}
+
+impl<F: Float> Background<F> for ConstantBackground<F> {
+    fn value_at(&self, _r: &Ray<F>) -> Color<F> {
+        self.color.clone()
+    }
+}
