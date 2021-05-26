@@ -3,13 +3,14 @@ use crate::Color;
 #[derive(Debug, Copy, Clone)]
 pub struct MaterialIndex(usize);
 
+#[derive(Default)]
 pub struct MaterialList {
     mats: Vec<Box<dyn Material>>,
 }
 
 impl MaterialList {
     pub fn new() -> Self {
-        Self { mats: Vec::new() }
+        Self::default()
     }
 
     pub fn insert(&mut self, m: Box<dyn Material>) -> MaterialIndex {
@@ -48,7 +49,7 @@ impl Material for SingleColorMaterial {
         self.ambient.clone()
     }
     fn shininess(&self) -> f64 {
-        self.shininess.clone()
+        self.shininess
     }
 }
 

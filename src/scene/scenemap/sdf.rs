@@ -183,12 +183,12 @@ impl<A: Sdf> Sdf for ScaleUniform<A> {
 #[derive(Debug, Clone)]
 pub struct WithMaterial<A> {
     pub a: A,
-    pub m: Option<MaterialIndex>,
+    pub m: MaterialIndex,
 }
 
 impl<A: Sdf> Sdf for WithMaterial<A> {
     fn value_at(&self, p: &Point3) -> (f64, Option<MaterialIndex>) {
-        (self.a.value_at(p).0, self.m)
+        (self.a.value_at(p).0, Some(self.m))
     }
 }
 

@@ -38,6 +38,6 @@ impl Camera {
         let origin = (&self.origin).clone();
         let direction = self.lower_left_corner.as_ref() + &self.horizontal * u + &self.vertical * v
             - self.origin.as_ref();
-        Ray { origin, direction }
+        Ray::new_unnormalized(origin, direction)
     }
 }

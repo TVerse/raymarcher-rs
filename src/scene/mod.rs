@@ -23,7 +23,7 @@ pub struct VerticalGradientBackground {
 
 impl Background for VerticalGradientBackground {
     fn value_at(&self, r: &Ray) -> Color {
-        let t = 0.5 * (r.direction.unit().as_ref().y + 1.0);
+        let t = 0.5 * (r.direction().as_ref().y + 1.0);
         &self.from * (1.0 - t) + &self.to * t
     }
 }

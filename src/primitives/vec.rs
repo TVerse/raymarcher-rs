@@ -12,15 +12,9 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-    pub fn zero() -> Self {
-        Self {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
-    }
+    pub const ZERO: Self = Self::new(0.0, 0.0, 0.0);
 
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
     }
 
@@ -245,17 +239,10 @@ mod tests {
     use test::black_box;
     use test::Bencher;
 
-    use float_cmp::F64Margin;
+    use crate::test_constants::MARGIN;
     use proptest::prelude::*;
 
     use super::*;
-
-    // Used in macro
-    #[allow(dead_code)]
-    const MARGIN: F64Margin = F64Margin {
-        ulps: 0, // TODO improve numerical stability, maybe
-        epsilon: 1e-5,
-    };
 
     prop_compose! {
         fn arb_vec3()(x in -10.0..10.0, y in -10.0..10.0, z in -10.0..10.0) -> Vec3 {
@@ -307,7 +294,7 @@ mod tests {
 
         #[test]
         fn cross_jacobi(a in arb_vec3(), b in arb_vec3(), c in arb_vec3()) {
-            assert!((a.cross(&b.cross(&c)) + b.cross(&c.cross(&a)) + c.cross(&a.cross(&b))).approx_eq(&Vec3::zero(), MARGIN))
+            assert!((a.cross(&b.cross(&c)) + b.cross(&c.cross(&a)) + c.cross(&a.cross(&b))).approx_eq(&Vec3::ZERO, MARGIN))
         }
     }
 

@@ -10,6 +10,7 @@ use crate::scene::scenemap::sdf::Sdf;
 use crate::scene::scenemap::SceneMap;
 pub use ray::FindTargetSettings;
 pub use ray::Ray;
+use crate::raymarcher::ray::FindTargetResult;
 
 pub fn render<'a>(config: &'a Config, scene: &'a Scene<'a>) -> impl Iterator<Item = Color> + 'a {
     let ImageSettings { width, height } = config.image_settings;
@@ -42,11 +43,11 @@ fn generate_pixel<'a>(
     } = scene;
 
     ray.find_target(&render_settings.find_target_settings, scene_map.sdf)
-        .map(|(point, mat)| {
+        .map(|FindTargetResult{point, material_index}| {
             let mat = if let Some(m) = &render_settings.material_override {
                 Some(m)
             } else {
-                mat.as_ref()
+                material_index.as_ref()
             };
             let material = mat
                 .and_then(|m| scene_map.materials.get(*m))
@@ -65,7 +66,7 @@ fn generate_pixel<'a>(
 fn phong<'a>(
     material: &'a dyn Material,
     scene: &'a Scene<'a>,
-    p: &Point3,
+    point: &Point3,
     find_target_settings: &FindTargetSettings,
 ) -> Color {
     let Scene {
@@ -79,88 +80,92 @@ fn phong<'a>(
         ..
     } = scene_map;
 
-    let normal = sdf.estimate_normal(p);
+    let normal = sdf.estimate_normal(point);
 
-    let v = (camera.origin.as_ref() - p.as_ref()).unit();
+    let v = (camera.origin.as_ref() - point.as_ref()).unit();
 
-    let r = phong_single_element(
+    let red = phong_single_element(
         |c| c.r(),
         &ambient_light.0,
         material,
-        filter_lights(lights, p, *sdf, find_target_settings),
-        &p,
+        find_light_factors(lights, point, *sdf, find_target_settings),
+        &point,
         &normal,
         &v,
     );
-    let g = phong_single_element(
+    let green = phong_single_element(
         |c| c.g(),
         &ambient_light.0,
         material,
-        filter_lights(lights, p, *sdf, find_target_settings),
-        &p,
+        find_light_factors(lights, point, *sdf, find_target_settings),
+        &point,
         &normal,
         &v,
     );
-    let b = phong_single_element(
+    let blue = phong_single_element(
         |c| c.b(),
         &ambient_light.0,
         material,
-        filter_lights(lights, p, *sdf, find_target_settings),
-        &p,
+        find_light_factors(lights, point, *sdf, find_target_settings),
+        &point,
         &normal,
         &v,
     );
-    Color::new(r, g, b)
+    Color::new(red, green, blue)
 }
 
-fn filter_lights<'a>(
+fn find_light_factors<'a>(
     lights: &'a [Light],
     p: &'a Point3,
     sdf: &'a dyn Sdf,
     find_target_settings: &'a FindTargetSettings,
-) -> impl Iterator<Item = &'a Light> + 'a {
-    lights.iter().filter(move |&l| {
-        let direction = p.as_ref() - l.location.as_ref();
+) -> impl Iterator<Item = (&'a Light, f64)> + 'a {
+    lights.iter().map(move |l| {
+        let direction = l.location.as_ref() - p.as_ref();
         let settings = FindTargetSettings {
             t_max: direction.length(),
-            ..(*find_target_settings.clone())
+            ..find_target_settings.clone()
         };
-        let origin = l.location.clone();
-        let r = Ray { origin, direction };
-        !r.is_shadow(&settings, sdf)
+        let origin = p.clone();
+        let r = Ray::new(origin, direction.unit());
+        (
+            l,
+            l.strength * r.soft_shadow(&settings, sdf, l.shadow_hardness),
+        )
     })
 }
 
-fn phong_single_element<'a, E: Fn(&Color) -> f64, L: Iterator<Item = &'a Light>>(
-    f: E,
+fn phong_single_element<'a, E: Fn(&Color) -> f64, L: Iterator<Item = (&'a Light, f64)>>(
+    extract: E,
     ambient_color: &Color,
     material: &dyn Material,
-    lights: L,
+    light_factors: L,
     p: &Point3,
     normal: &UnitVec3,
     v: &UnitVec3,
 ) -> f64 {
-    let ambient_contribution = f(ambient_color) * f(&material.ambient());
+    let ambient_contribution = extract(ambient_color) * extract(&material.ambient());
 
-    let light_contribution = lights
-        .map(|light| {
+    let light_contribution = light_factors
+        .map(|(light, factor)| {
             let l: UnitVec3 = (light.location.as_ref() - p.as_ref()).unit();
             let l_dot_normal: f64 = l.as_ref().dot(normal.as_ref());
             let r: Vec3 = normal.as_ref() * (2.0 * (l_dot_normal)) - l.as_ref();
             let diffuse = if l_dot_normal > 0.0 {
-                f(&material.diffuse()) * l_dot_normal * f(&light.diffuse)
+                extract(&material.diffuse()) * l_dot_normal * extract(&light.diffuse)
             } else {
                 0.0
             };
             let specular_dot = r.dot(v.as_ref());
             let specular = if specular_dot > 0.0 && l_dot_normal > 0.0 {
-                f(&material.specular())
+                extract(&material.specular())
                     * specular_dot.powf(material.shininess())
-                    * f(&light.specular)
+                    * extract(&light.specular)
             } else {
                 0.0
             };
-            diffuse + specular
+            // println!("{}", factor);
+            factor * (diffuse + specular)
         })
         .fold(0.0, |acc, l| acc + l);
     ambient_contribution + light_contribution

@@ -14,4 +14,6 @@ pub struct Light {
     pub location: Point3,
     pub specular: Color,
     pub diffuse: Color,
+    pub strength: f64,
+    pub shadow_hardness: f64,
 }

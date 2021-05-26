@@ -48,11 +48,7 @@ impl RenderSettings {
         material_override: Option<MaterialIndex>,
     ) -> Self {
         Self {
-            find_target_settings: FindTargetSettings::new(
-                t_min,
-                t_max,
-                epsilon,
-            ),
+            find_target_settings: FindTargetSettings::new(t_min, t_max, epsilon),
             material_override,
         }
     }
@@ -86,4 +82,16 @@ impl From<Color> for RGBColor {
             b: RGBColor::convert_to_rgb_byte(c.b()),
         }
     }
+}
+
+#[cfg(test)]
+pub mod test_constants {
+    use float_cmp::F64Margin;
+
+    // Used in macro
+    #[allow(dead_code)]
+    pub const MARGIN: F64Margin = F64Margin {
+        ulps: 0, // TODO improve numerical stability, maybe
+        epsilon: 1e-5,
+    };
 }

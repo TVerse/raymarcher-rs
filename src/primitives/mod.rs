@@ -1,6 +1,8 @@
 use std::ops::{Add, Mul};
 
 mod vec;
+#[cfg(test)]
+use float_cmp::{ApproxEq, F64Margin};
 pub use vec::Vec3;
 
 #[derive(Debug, Clone, derive_more::From, derive_more::Into, derive_more::AsRef)]
@@ -10,8 +12,19 @@ pub struct UnitVec3(pub Vec3);
 pub struct Point3(pub Vec3);
 
 impl Point3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub const ORIGIN: Self = Self(Vec3::ZERO);
+
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self(Vec3::new(x, y, z))
+    }
+}
+
+#[cfg(test)]
+impl<'a> ApproxEq for &'a Point3 {
+    type Margin = F64Margin;
+
+    fn approx_eq<M: Into<Self::Margin>>(self, other: Self, margin: M) -> bool {
+        self.0.approx_eq(&other.0, margin)
     }
 }
 
@@ -24,7 +37,7 @@ impl Color {
     }
 
     pub fn black() -> Self {
-        Self(Vec3::zero())
+        Self(Vec3::ZERO)
     }
 
     pub fn purple() -> Self {
