@@ -36,12 +36,13 @@ impl Ray {
         sdf: &dyn Sdf,
     ) -> Option<FindTargetResult> {
         DepthIterator::new(sdf, &self, find_target_settings.t_min)
-        .into_iter()
-        .take_while(|DepthResult { total_depth, .. }| total_depth < &find_target_settings.t_max)
-        .find(|DepthResult { dist, .. }| *dist < find_target_settings.epsilon)
-        .map(|dr| FindTargetResult {
-            point: dr.point,
-            material_index: dr.mat_idx})
+            .into_iter()
+            .take_while(|DepthResult { total_depth, .. }| total_depth < &find_target_settings.t_max)
+            .find(|DepthResult { dist, .. }| *dist < find_target_settings.epsilon)
+            .map(|dr| FindTargetResult {
+                point: dr.point,
+                material_index: dr.mat_idx,
+            })
     }
 
     pub fn soft_shadow(
@@ -54,17 +55,17 @@ impl Ray {
         let corrected_t_max =
             find_target_settings.t_max * (1.0 - 3.0 * find_target_settings.epsilon);
 
-    DepthIterator::new(sdf, &self, find_target_settings.t_min)
-        .into_iter()
-        .take_while(|DepthResult { total_depth, .. }| *total_depth < corrected_t_max)
-        .fold_while(1.0, |acc: f64, sr| {
-            if sr.dist < find_target_settings.epsilon {
-                Done(acc)
-            } else {
-                Continue(acc.min(k * sr.dist / sr.total_depth))
-            }
-        })
-        .into_inner()
+        DepthIterator::new(sdf, &self, find_target_settings.t_min)
+            .into_iter()
+            .take_while(|DepthResult { total_depth, .. }| *total_depth < corrected_t_max)
+            .fold_while(1.0, |acc: f64, sr| {
+                if sr.dist < find_target_settings.epsilon {
+                    Done(acc)
+                } else {
+                    Continue(acc.min(k * sr.dist / sr.total_depth))
+                }
+            })
+            .into_inner()
     }
 }
 
@@ -87,7 +88,7 @@ impl FindTargetSettings {
 
 pub struct FindTargetResult {
     pub point: Point3,
-    pub material_index: Option<MaterialIndex>
+    pub material_index: Option<MaterialIndex>,
 }
 
 struct DepthIterator<'a> {
@@ -97,13 +98,13 @@ struct DepthIterator<'a> {
     cur_depth: f64,
 }
 
-impl<'a>  DepthIterator<'a> {
+impl<'a> DepthIterator<'a> {
     fn new(sdf: &'a dyn Sdf, r: &'a Ray, t_min: f64) -> Self {
         Self {
             sdf,
             r,
             prev_dist: 0.0,
-            cur_depth:  t_min,
+            cur_depth: t_min,
         }
     }
 }

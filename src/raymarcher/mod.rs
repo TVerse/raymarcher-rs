@@ -4,13 +4,13 @@ use crate::{Config, ImageSettings, Point3, RenderSettings, Vec3};
 use itertools::Itertools;
 
 mod ray;
+use crate::raymarcher::ray::FindTargetResult;
 use crate::scene::scenemap::lights::Light;
 use crate::scene::scenemap::material::{DefaultMaterial, Material};
 use crate::scene::scenemap::sdf::Sdf;
 use crate::scene::scenemap::SceneMap;
 pub use ray::FindTargetSettings;
 pub use ray::Ray;
-use crate::raymarcher::ray::FindTargetResult;
 
 pub fn render<'a>(config: &'a Config, scene: &'a Scene<'a>) -> impl Iterator<Item = Color> + 'a {
     let ImageSettings { width, height } = config.image_settings;
@@ -27,39 +27,55 @@ pub fn render<'a>(config: &'a Config, scene: &'a Scene<'a>) -> impl Iterator<Ite
         let v = j / ((height as f64) - 1.0);
 
         let ray = scene.camera.get_ray(u, v);
-        generate_pixel(ray, &config.render_settings, scene)
+        generate_pixel(&ray, &config.render_settings, scene, config.render_settings.max_recursions)
     })
 }
 
 fn generate_pixel<'a>(
-    ray: Ray,
+    ray: &Ray,
     render_settings: &'a RenderSettings,
     scene: &'a Scene<'a>,
+    remaining_depth: usize,
 ) -> Color {
+    if remaining_depth == 0 {
+        return Color::black()
+    }
     let Scene {
         scene_map,
         background,
         ..
     } = scene;
 
-    ray.find_target(&render_settings.find_target_settings, scene_map.sdf)
-        .map(|FindTargetResult{point, material_index}| {
-            let mat = if let Some(m) = &render_settings.material_override {
-                Some(m)
-            } else {
-                material_index.as_ref()
-            };
-            let material = mat
-                .and_then(|m| scene_map.materials.get(*m))
-                .unwrap_or(&DefaultMaterial);
+    let sdf = scene_map.sdf;
 
-            phong(
-                material,
-                scene,
-                &point,
-                &render_settings.find_target_settings,
-            )
-        })
+    ray.find_target(&render_settings.find_target_settings, scene_map.sdf)
+        .map(
+            |FindTargetResult {
+                 point,
+                 material_index,
+             }| {
+                let mat = if let Some(m) = &render_settings.material_override {
+                    Some(m)
+                } else {
+                    material_index.as_ref()
+                };
+                let material = mat
+                    .and_then(|m| scene_map.materials.get(*m))
+                    .unwrap_or(&DefaultMaterial);
+
+                let phong_contribution = phong(
+                    material,
+                    scene,
+                    &point,
+                    &render_settings.find_target_settings,
+                );
+
+                material
+                    .child_ray(sdf, &point, &ray)
+                    .map(|r| generate_pixel(&r, render_settings, scene, remaining_depth - 1))
+                    .unwrap_or(phong_contribution)
+            },
+        )
         .unwrap_or_else(|| background.value_at(&ray))
 }
 

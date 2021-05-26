@@ -1,4 +1,5 @@
-use crate::Color;
+use crate::scene::scenemap::sdf::Sdf;
+use crate::{Color, Point3, Ray};
 
 #[derive(Debug, Copy, Clone)]
 pub struct MaterialIndex(usize);
@@ -28,17 +29,20 @@ pub trait Material {
     fn diffuse(&self) -> Color;
     fn ambient(&self) -> Color;
     fn shininess(&self) -> f64;
+
+    fn child_ray(&self, _sdf: &dyn Sdf, _p: &Point3, _incoming: &Ray) -> Option<Ray> {
+        None
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct SingleColorMaterial {
+pub struct PhongMaterial {
     pub specular: Color,
     pub diffuse: Color,
     pub ambient: Color,
     pub shininess: f64,
 }
 
-impl Material for SingleColorMaterial {
+impl Material for PhongMaterial {
     fn specular(&self) -> Color {
         self.specular.clone()
     }
@@ -53,31 +57,31 @@ impl Material for SingleColorMaterial {
     }
 }
 
-// TODO
-// pub struct Normal;
-//
-// impl Material for Normal {
-//     fn value_at(&self, p: &Point3, sdf: &dyn Sdf) -> Color {
-//         let normal = sdf.estimate_normal(p);
-//         (Color::white() + Color(normal.0)) * constants::half()
-//     }
-//
-//     fn specular(&self) -> f64 {
-//         1.0
-//     }
-//
-//     fn diffuse(&self) -> f64 {
-//         1.0
-//     }
-//
-//     fn ambient(&self) -> f64 {
-//         1.0
-//     }
-//
-//     fn shininess(&self) -> f64 {
-//         1.0
-//     }
-// }
+pub struct ReflectiveMaterial;
+
+impl Material for ReflectiveMaterial {
+    fn specular(&self) -> Color {
+        Color::black()
+    }
+
+    fn diffuse(&self) -> Color {
+        Color::black()
+    }
+
+    fn ambient(&self) -> Color {
+        Color::black()
+    }
+
+    fn shininess(&self) -> f64 {
+        0.0
+    }
+
+    fn child_ray(&self, sdf: &dyn Sdf, p: &Point3, incoming: &Ray) -> Option<Ray> {
+        let normal = sdf.estimate_normal(p);
+        let reflected_direction = incoming.direction().as_ref().reflect(&normal);
+        Some(Ray::new_unnormalized(p.clone(), reflected_direction))
+    }
+}
 
 pub struct DefaultMaterial;
 

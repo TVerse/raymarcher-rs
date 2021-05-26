@@ -62,6 +62,10 @@ impl Vec3 {
             z: self.z.max(other.z),
         }
     }
+
+    pub fn reflect(&self, n: &UnitVec3) -> Self {
+        self - &n.0 * 2.0 * self.dot(&n.0)
+    }
 }
 
 #[cfg(test)]
@@ -197,6 +201,18 @@ impl Sub<&Vec3> for &Vec3 {
 }
 
 impl Mul<f64> for &Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs,
+            y: self.y * rhs,
+            z: self.z * rhs,
+        }
+    }
+}
+
+impl Mul<f64> for Vec3 {
     type Output = Vec3;
 
     fn mul(self, rhs: f64) -> Self::Output {

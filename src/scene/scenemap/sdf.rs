@@ -62,6 +62,12 @@ pub trait Sdf {
 //     }
 // }
 
+impl<'a, A: Sdf> Sdf for &'a A {
+    fn value_at(&self, p: &Point3) -> (f64, Option<MaterialIndex>) {
+        (*self).value_at(p)
+    }
+}
+
 impl<A: Sdf + ?Sized> Sdf for Box<A> {
     fn value_at(&self, p: &Point3) -> (f64, Option<MaterialIndex>) {
         (self.deref()).value_at(p)

@@ -1,54 +1,55 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::rc::Rc;
 use std::time::Instant;
 
+use raymarcher_rs::{Color, Config, ImageSettings, Point3, render, RenderSettings, RGBColor, Vec3};
+use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
 use raymarcher_rs::scene::camera::Camera;
 use raymarcher_rs::scene::scenemap::lights::{AmbientLight, Light};
-use raymarcher_rs::scene::scenemap::material::{MaterialList, SingleColorMaterial};
+use raymarcher_rs::scene::scenemap::material::{MaterialList, PhongMaterial, ReflectiveMaterial};
+use raymarcher_rs::scene::scenemap::SceneMap;
 use raymarcher_rs::scene::scenemap::sdf::{
-    halfplane, Arbitrary, Intersect, ScaleUniform, Translate, Union, UnitCube, UnitSphere,
+    Arbitrary, halfplane, Intersect, ScaleUniform, Translate, Union, UnitCube, UnitSphere,
     WithMaterial,
 };
-use raymarcher_rs::scene::scenemap::SceneMap;
-use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
-use raymarcher_rs::{render, Color, Config, ImageSettings, Point3, RGBColor, RenderSettings, Vec3};
 
 fn main() -> std::io::Result<()> {
     let start = Instant::now();
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 800;
+    let image_width = 1200;
     let image_height = (image_width as f64 / aspect_ratio) as usize;
 
     let mut material_list = MaterialList::new();
 
-    let white = material_list.insert(Box::new(SingleColorMaterial {
+    let sphere_top_material = material_list.insert(Box::new(PhongMaterial {
         specular: Color::new(0.9, 0.9, 0.9),
         diffuse: Color::new(0.9, 0.9, 0.9),
         ambient: Color::new(0.9, 0.9, 0.9),
         shininess: 10.0,
     }));
-    let red = material_list.insert(Box::new(SingleColorMaterial {
+    let red = material_list.insert(Box::new(PhongMaterial {
         specular: Color::new(0.9, 0.1, 0.1),
         diffuse: Color::new(0.5, 0.5, 0.5),
         ambient: Color::new(0.9, 0.1, 0.1),
         shininess: 5.0,
     }));
-    let floor_material = material_list.insert(Box::new(SingleColorMaterial {
+    let floor_material = material_list.insert(Box::new(PhongMaterial {
         specular: Color::new(0.1, 0.1, 0.1),
         diffuse: Color::new(0.1, 0.1, 0.1),
         ambient: Color::black(),
         shininess: 32.0,
     }));
 
+    let sphere_outside_material = material_list.insert(Box::new(ReflectiveMaterial));
+
     let config: Config = Config::new(
         ImageSettings::new(image_width, image_height),
-        RenderSettings::new(0.001, 100.0, 1e-9, None),
+        RenderSettings::new(0.001, 100.0, 1e-4, 100, None),
     );
 
     let camera = Camera::new(
         Point3::new(0.0, 1.0, 0.0),
-        Point3::new(-2.0, 5.5, 5.0),
+        Point3::new(-2.0, 2.5, 5.0),
         Vec3::new(0.0, 1.0, 0.0),
         45.0,
         aspect_ratio,
@@ -60,10 +61,13 @@ fn main() -> std::io::Result<()> {
         ((v.y - (v.x.sin() + v.z.sin())) / 2.0, None)
     });
 
-    let sine_wave = Rc::new(ScaleUniform {
-        a: sine_wave,
-        f: 0.1,
-    });
+    let sine_wave = WithMaterial {
+        a: ScaleUniform {
+            a: sine_wave,
+            f: 0.1,
+        },
+        m: sphere_top_material,
+    };
 
     let floor = WithMaterial {
         a: Intersect {
@@ -76,30 +80,54 @@ fn main() -> std::io::Result<()> {
         m: floor_material,
     };
 
+    let wavy_sphere = Intersect {
+        a: WithMaterial {
+            a: ScaleUniform {
+                a: UnitSphere,
+                f: 0.9,
+            },
+            m: sphere_outside_material,
+        },
+        b: Translate {
+            a: ScaleUniform {
+                a: &sine_wave,
+                f: 2.0,
+            },
+            v: Vec3::new(0.0, 0.5, 0.0),
+        },
+    };
+
+    let wavy_cube = Intersect {
+        a: WithMaterial {
+            a: ScaleUniform {
+                a: UnitCube,
+                f: 0.9,
+            },
+            m: sphere_outside_material,
+        },
+        b: Translate {
+            a: ScaleUniform {
+                a: &sine_wave,
+                f: 2.0,
+            },
+            v: Vec3::new(0.0, 0.5, 0.0),
+        },
+    };
     let sdf = Union {
         a: Union {
             a: WithMaterial {
-                a: UnitCube,
+                a: Translate { a: ScaleUniform { a: UnitCube, f: 2.0 }, v: Vec3::new(0.0, -1.0, 0.0) },
                 m: red,
             },
-            b: Translate {
-                a: Intersect {
-                    a: WithMaterial {
-                        a: ScaleUniform {
-                            a: UnitSphere,
-                            f: 0.9,
-                        },
-                        m: white,
-                    },
-                    b: Translate {
-                        a: ScaleUniform {
-                            a: sine_wave,
-                            f: 2.0,
-                        },
-                        v: Vec3::new(0.0, 0.5, 0.0),
-                    },
+            b: Union {
+                a: Translate {
+                    a: wavy_sphere,
+                    v: Vec3::new(1.0, 1.5, 1.0),
                 },
-                v: Vec3::new(0.0, 1.5, 0.0),
+                b: Translate {
+                    a: wavy_cube,
+                    v: Vec3::new(-1.0, 1.5, -1.0),
+                },
             },
         },
         b: floor,
@@ -160,7 +188,7 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_iter<W: Write, I: Iterator<Item = RGBColor>>(
+fn write_iter<W: Write, I: Iterator<Item=RGBColor>>(
     writer: &mut W,
     iter: I,
 ) -> std::io::Result<()> {

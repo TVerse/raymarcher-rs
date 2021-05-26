@@ -37,6 +37,7 @@ impl ImageSettings {
 
 pub struct RenderSettings {
     find_target_settings: FindTargetSettings,
+    max_recursions: usize,
     material_override: Option<MaterialIndex>,
 }
 
@@ -45,10 +46,12 @@ impl RenderSettings {
         t_min: f64,
         t_max: f64,
         epsilon: f64,
+        max_recursions: usize,
         material_override: Option<MaterialIndex>,
     ) -> Self {
         Self {
             find_target_settings: FindTargetSettings::new(t_min, t_max, epsilon),
+            max_recursions,
             material_override,
         }
     }
