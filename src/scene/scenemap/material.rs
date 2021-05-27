@@ -1,12 +1,20 @@
 use crate::scene::scenemap::sdf::Sdf;
 use crate::{Color, Point3, Ray};
 
+/*
+TODO
+
+* Add refraction. Idea: offset target point based on normal (maybe? t_min?), then invert SDF and continue as normal. Is it possible to distinguish inside/outside (for refractive index) then? Unless that's also inverted in inverted SDFs.
+* Allow changing of material based on point and/or normals (for normal shade override)
+
+ */
+
 #[derive(Debug, Copy, Clone)]
 pub struct MaterialIndex(usize);
 
 #[derive(Default)]
 pub struct MaterialList {
-    mats: Vec<Box<dyn Material>>,
+    mats: Vec<Material>,
 }
 
 impl MaterialList {
@@ -14,91 +22,73 @@ impl MaterialList {
         Self::default()
     }
 
-    pub fn insert(&mut self, m: Box<dyn Material>) -> MaterialIndex {
+    pub fn insert(&mut self, m: Material) -> MaterialIndex {
         self.mats.push(m);
         MaterialIndex(self.mats.len() - 1)
     }
 
-    pub fn get(&self, idx: MaterialIndex) -> Option<&dyn Material> {
-        self.mats.get(idx.0).map(|m| m.as_ref())
+    pub fn get(&self, idx: MaterialIndex) -> Option<&Material> {
+        self.mats.get(idx.0)
     }
 }
 
-pub trait Material {
-    fn specular(&self) -> Color;
-    fn diffuse(&self) -> Color;
-    fn ambient(&self) -> Color;
-    fn shininess(&self) -> f64;
-
-    fn child_ray(&self, _sdf: &dyn Sdf, _p: &Point3, _incoming: &Ray) -> Option<Ray> {
-        None
-    }
-}
-
-pub struct PhongMaterial {
+pub struct Material {
     pub specular: Color,
     pub diffuse: Color,
     pub ambient: Color,
     pub shininess: f64,
+    pub reflectivity: f64,
 }
 
-impl Material for PhongMaterial {
-    fn specular(&self) -> Color {
+impl Material {
+    pub const DEFAULT: Material = Self::new(Color::PURPLE, Color::PURPLE, Color::PURPLE, 1.0, 0.0);
+
+    pub const fn new(
+        specular: Color,
+        diffuse: Color,
+        ambient: Color,
+        shininess: f64,
+        reflectivity: f64,
+    ) -> Self {
+        Self {
+            specular,
+            diffuse,
+            ambient,
+            shininess,
+            reflectivity,
+        }
+    }
+
+    pub const fn pure_reflective() -> Self {
+        Self::new(Color::BLACK, Color::BLACK, Color::BLACK, 0.0, 1.0)
+    }
+
+    pub fn specular(&self) -> Color {
         self.specular.clone()
     }
-    fn diffuse(&self) -> Color {
+    pub fn diffuse(&self) -> Color {
         self.diffuse.clone()
     }
-    fn ambient(&self) -> Color {
+    pub fn ambient(&self) -> Color {
         self.ambient.clone()
     }
-    fn shininess(&self) -> f64 {
+    pub fn shininess(&self) -> f64 {
         self.shininess
     }
-}
 
-pub struct ReflectiveMaterial;
-
-impl Material for ReflectiveMaterial {
-    fn specular(&self) -> Color {
-        Color::black()
+    pub fn reflectivity(&self) -> f64 {
+        self.reflectivity
     }
 
-    fn diffuse(&self) -> Color {
-        Color::black()
-    }
-
-    fn ambient(&self) -> Color {
-        Color::black()
-    }
-
-    fn shininess(&self) -> f64 {
-        0.0
-    }
-
-    fn child_ray(&self, sdf: &dyn Sdf, p: &Point3, incoming: &Ray) -> Option<Ray> {
+    pub fn child_ray(&self, sdf: &dyn Sdf, p: &Point3, incoming: &Ray) -> Option<Ray> {
         let normal = sdf.estimate_normal(p);
         let reflected_direction = incoming.direction().as_ref().reflect(&normal);
         Some(Ray::new_unnormalized(p.clone(), reflected_direction))
     }
 }
 
-pub struct DefaultMaterial;
-
-impl Material for DefaultMaterial {
-    fn specular(&self) -> Color {
-        Color::purple()
-    }
-
-    fn diffuse(&self) -> Color {
-        Color::purple()
-    }
-
-    fn ambient(&self) -> Color {
-        Color::purple()
-    }
-
-    fn shininess(&self) -> f64 {
-        1.0
+impl Default for Material {
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }

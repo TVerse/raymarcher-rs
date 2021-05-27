@@ -2,16 +2,18 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::time::Instant;
 
-use raymarcher_rs::{Color, Config, ImageSettings, Point3, render, RenderSettings, RGBColor, Vec3};
-use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
+use itertools::Itertools;
+
 use raymarcher_rs::scene::camera::Camera;
 use raymarcher_rs::scene::scenemap::lights::{AmbientLight, Light};
-use raymarcher_rs::scene::scenemap::material::{MaterialList, PhongMaterial, ReflectiveMaterial};
-use raymarcher_rs::scene::scenemap::SceneMap;
+use raymarcher_rs::scene::scenemap::material::{Material, MaterialList};
 use raymarcher_rs::scene::scenemap::sdf::{
-    Arbitrary, halfplane, Intersect, ScaleUniform, Translate, Union, UnitCube, UnitSphere,
-    WithMaterial,
+    halfplane, Arbitrary, Intersect, ScaleUniform, Sdf, Subtract, Translate, Union, UnitCube,
+    UnitSphere, WithMaterial,
 };
+use raymarcher_rs::scene::scenemap::SceneMap;
+use raymarcher_rs::scene::{Scene, VerticalGradientBackground};
+use raymarcher_rs::{render, Color, Config, ImageSettings, Point3, RGBColor, RenderSettings, Vec3};
 
 fn main() -> std::io::Result<()> {
     let start = Instant::now();
@@ -21,26 +23,45 @@ fn main() -> std::io::Result<()> {
 
     let mut material_list = MaterialList::new();
 
-    let sphere_top_material = material_list.insert(Box::new(PhongMaterial {
-        specular: Color::new(0.9, 0.9, 0.9),
-        diffuse: Color::new(0.9, 0.9, 0.9),
-        ambient: Color::new(0.9, 0.9, 0.9),
-        shininess: 10.0,
-    }));
-    let red = material_list.insert(Box::new(PhongMaterial {
-        specular: Color::new(0.9, 0.1, 0.1),
-        diffuse: Color::new(0.5, 0.5, 0.5),
-        ambient: Color::new(0.9, 0.1, 0.1),
-        shininess: 5.0,
-    }));
-    let floor_material = material_list.insert(Box::new(PhongMaterial {
-        specular: Color::new(0.1, 0.1, 0.1),
-        diffuse: Color::new(0.1, 0.1, 0.1),
-        ambient: Color::black(),
-        shininess: 32.0,
-    }));
+    let top_material = material_list.insert(Material::new(
+        Color::new(0.9, 0.9, 0.9),
+        Color::new(0.9, 0.9, 0.9),
+        Color::new(0.9, 0.9, 0.9),
+        10.0,
+        0.3,
+    ));
+    let red = material_list.insert(Material::new(
+        Color::new(0.9, 0.1, 0.1),
+        Color::new(0.5, 0.5, 0.5),
+        Color::new(0.9, 0.1, 0.1),
+        5.0,
+        0.5,
+    ));
+    let floor_material = material_list.insert(Material::new(
+        Color::new(0.1, 0.1, 0.1),
+        Color::new(0.1, 0.1, 0.1),
+        Color::BLACK,
+        32.0,
+        0.1,
+    ));
 
-    let sphere_outside_material = material_list.insert(Box::new(ReflectiveMaterial));
+    let sphere_outside_material = material_list.insert(Material::new(
+        Color::new(0.9, 0.1, 0.1),
+        Color::new(0.9, 0.1, 0.1),
+        Color::BLACK,
+        32.0,
+        0.1,
+    ));
+
+    let box_outside_material = material_list.insert(Material::pure_reflective());
+
+    let lattice_material = material_list.insert(Material::new(
+        Color::new(0.2, 0.2, 0.2),
+        Color::new(0.2, 0.2, 0.2),
+        Color::new(0.2, 0.2, 0.2),
+        0.0,
+        0.0,
+    ));
 
     let config: Config = Config::new(
         ImageSettings::new(image_width, image_height),
@@ -66,7 +87,7 @@ fn main() -> std::io::Result<()> {
             a: sine_wave,
             f: 0.1,
         },
-        m: sphere_top_material,
+        m: top_material,
     };
 
     let floor = WithMaterial {
@@ -97,13 +118,43 @@ fn main() -> std::io::Result<()> {
         },
     };
 
+    let translate_cube = |v: Vec3| Translate {
+        a: UnitCube,
+        v: v * 0.2,
+    };
+
+    let cross = Union {
+        a: translate_cube(Vec3::new(1.0, 0.0, 0.0)),
+        b: Union {
+            a: translate_cube(Vec3::new(-1.0, 0.0, 0.0)),
+            b: Union {
+                a: translate_cube(Vec3::new(0.0, 1.0, 0.0)),
+                b: Union {
+                    a: translate_cube(Vec3::new(0.0, -1.0, 0.0)),
+                    b: Union {
+                        a: translate_cube(Vec3::new(0.0, 0.0, 1.0)),
+                        b: translate_cube(Vec3::new(0.0, 0.0, -1.0)),
+                    },
+                },
+            },
+        },
+    };
+
+    let lattice = WithMaterial {
+        a: Subtract {
+            a: UnitCube,
+            b: ScaleUniform { a: cross, f: 0.9 },
+        },
+        m: lattice_material,
+    };
+
     let wavy_cube = Intersect {
         a: WithMaterial {
             a: ScaleUniform {
                 a: UnitCube,
                 f: 0.9,
             },
-            m: sphere_outside_material,
+            m: box_outside_material,
         },
         b: Translate {
             a: ScaleUniform {
@@ -113,10 +164,22 @@ fn main() -> std::io::Result<()> {
             v: Vec3::new(0.0, 0.5, 0.0),
         },
     };
+
+    let contained_cube = Union {
+        a: lattice,
+        b: wavy_cube,
+    };
+
     let sdf = Union {
         a: Union {
             a: WithMaterial {
-                a: Translate { a: ScaleUniform { a: UnitCube, f: 2.0 }, v: Vec3::new(0.0, -1.0, 0.0) },
+                a: Translate {
+                    a: ScaleUniform {
+                        a: UnitCube,
+                        f: 2.0,
+                    },
+                    v: Vec3::new(0.0, -1.0, 0.0),
+                },
                 m: red,
             },
             b: Union {
@@ -125,8 +188,8 @@ fn main() -> std::io::Result<()> {
                     v: Vec3::new(1.0, 1.5, 1.0),
                 },
                 b: Translate {
-                    a: wavy_cube,
-                    v: Vec3::new(-1.0, 1.5, -1.0),
+                    a: contained_cube,
+                    v: Vec3::new(-1.0, 2.0, -1.0),
                 },
             },
         },
@@ -188,7 +251,7 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_iter<W: Write, I: Iterator<Item=RGBColor>>(
+fn write_iter<W: Write, I: Iterator<Item = RGBColor>>(
     writer: &mut W,
     iter: I,
 ) -> std::io::Result<()> {

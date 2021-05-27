@@ -168,7 +168,7 @@ impl<A: Sdf, B: Sdf> Sdf for Subtract<A, B> {
         if da.0 > -db.0 {
             da
         } else {
-            db
+            (-db.0, db.1)
         }
     }
 }

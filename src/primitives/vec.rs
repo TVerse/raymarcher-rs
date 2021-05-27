@@ -1,8 +1,9 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-use crate::primitives::UnitVec3;
 #[cfg(test)]
 use float_cmp::{ApproxEq, F64Margin};
+
+use crate::primitives::UnitVec3;
 
 #[derive(Debug, Clone)]
 pub struct Vec3 {
@@ -19,7 +20,8 @@ impl Vec3 {
     }
 
     pub fn dot(&self, other: &Self) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z
+        self.z
+            .mul_add(other.z, self.x.mul_add(other.x, self.y * other.y))
     }
 
     pub fn cross(&self, other: &Self) -> Self {
@@ -224,6 +226,54 @@ impl Mul<f64> for Vec3 {
     }
 }
 
+impl Mul<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
+impl Mul<&Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
+impl Mul<Vec3> for &Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
+impl Mul<&Vec3> for &Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
 impl Div<f64> for Vec3 {
     type Output = Vec3;
 
@@ -255,14 +305,15 @@ mod tests {
     use test::black_box;
     use test::Bencher;
 
-    use crate::test_constants::MARGIN;
     use proptest::prelude::*;
+
+    use crate::test_constants::MARGIN;
 
     use super::*;
 
     prop_compose! {
         fn arb_vec3()(x in -10.0..10.0, y in -10.0..10.0, z in -10.0..10.0) -> Vec3 {
-            Vec3{
+            Vec3 {
                 x,
                 y,
                 z,
@@ -273,17 +324,17 @@ mod tests {
     proptest! {
         #[test]
         fn dot_product_commutative(a in arb_vec3(), b in arb_vec3()) {
-            assert!(a.dot(&b).approx_eq(b.dot(&a), MARGIN))
+            assert!(a.dot(&b).approx_eq(b.dot(&a), MARGIN));
         }
 
         #[test]
         fn dot_product_distributive(a in arb_vec3(), b in arb_vec3(), c in arb_vec3()) {
-            assert!(a.dot(&(&b + &c)).approx_eq(a.dot(&b) + a.dot(&c), MARGIN))
+            assert!(a.dot(&(&b + &c)).approx_eq(a.dot(&b) + a.dot(&c), MARGIN));
         }
 
         #[test]
-        fn dot_product_bilinear(a in arb_vec3(), b in arb_vec3(), c in arb_vec3(), r in -10.0..10.0) {
-            assert!(a.dot(&((&b * r) + &c)).approx_eq(r * a.dot(&b) + a.dot(&c), MARGIN))
+        fn dot_product_bilinear(a in arb_vec3(), b in arb_vec3(), c in arb_vec3(), r in -10.0_f64..10.0_f64) {
+            assert!(a.dot(&((&b * r) + &c)).approx_eq(r.mul_add(a.dot(&b), a.dot(&c)), MARGIN));
         }
     }
 

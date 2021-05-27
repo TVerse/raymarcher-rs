@@ -32,19 +32,13 @@ impl<'a> ApproxEq for &'a Point3 {
 pub struct Color(pub Vec3);
 
 impl Color {
-    pub fn white() -> Self {
-        Self::new(1.0, 1.0, 1.0)
-    }
+    pub const WHITE: Color = Self::new(1.0, 1.0, 1.0);
 
-    pub fn black() -> Self {
-        Self(Vec3::ZERO)
-    }
+    pub const BLACK: Color = Self(Vec3::ZERO);
 
-    pub fn purple() -> Self {
-        Self::new(1.0, 0.0, 1.0)
-    }
+    pub const PURPLE: Color = Self::new(1.0, 0.0, 1.0);
 
-    pub fn new(r: f64, g: f64, b: f64) -> Self {
+    pub const fn new(r: f64, g: f64, b: f64) -> Self {
         Self(Vec3 { x: r, y: g, z: b })
     }
 
@@ -82,5 +76,21 @@ impl Mul<f64> for Color {
 
     fn mul(self, rhs: f64) -> Self::Output {
         &self * rhs
+    }
+}
+
+impl Mul<Color> for &Color {
+    type Output = Color;
+
+    fn mul(self, rhs: Color) -> Self::Output {
+        Color::new(self.r() * rhs.r(), self.g() * rhs.g(), self.g() * rhs.g())
+    }
+}
+
+impl Mul<&Color> for &Color {
+    type Output = Color;
+
+    fn mul(self, rhs: &Color) -> Self::Output {
+        Color::new(self.r() * rhs.r(), self.g() * rhs.g(), self.g() * rhs.g())
     }
 }
