@@ -146,11 +146,10 @@ mod tests {
 
     use float_cmp::ApproxEq;
 
-    use crate::scene::scenemap::sdf::halfplane;
-    use crate::scene::scenemap::sdf::UnitSphere;
     use crate::test_constants::MARGIN;
 
     use super::*;
+    use crate::scene::scenemap::sdf::primitives::{NegY, Sphere};
 
     #[test]
     fn evaluate_sdf_hit() {
@@ -161,7 +160,7 @@ mod tests {
 
         let settings = FindTargetSettings::new(0.0, 100.0, 1e-5);
 
-        let sdf = UnitSphere;
+        let sdf = Sphere::default();
 
         let ftr = ray.find_target(&settings, &sdf).unwrap();
 
@@ -177,7 +176,7 @@ mod tests {
 
         let settings = FindTargetSettings::new(0.0, 100.0, 1e-5);
 
-        let sdf = UnitSphere;
+        let sdf = Sphere::default();
 
         assert!(ray.find_target(&settings, &sdf).is_none());
     }
@@ -188,7 +187,7 @@ mod tests {
 
         let settings = FindTargetSettings::new(0.0, 100.0, 1e-5);
 
-        let sdf = UnitSphere;
+        let sdf = Sphere::default();
 
         b.iter(|| {
             let find_target_settings = black_box(&settings);
@@ -203,7 +202,7 @@ mod tests {
 
         let settings = FindTargetSettings::new(0.0, 100.0, 1e-5);
 
-        let sdf = halfplane::NegY;
+        let sdf = NegY;
 
         b.iter(|| {
             let find_target_settings = black_box(&settings);

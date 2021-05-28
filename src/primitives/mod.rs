@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Sub};
 
 mod vec;
 #[cfg(test)]
@@ -16,6 +16,14 @@ impl Point3 {
 
     pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self(Vec3::new(x, y, z))
+    }
+}
+
+impl Sub<&Vec3> for &Point3 {
+    type Output = Point3;
+
+    fn sub(self, rhs: &Vec3) -> Self::Output {
+        Point3(&self.0 - rhs)
     }
 }
 
