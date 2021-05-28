@@ -13,7 +13,9 @@ pub trait Sdf {
     fn value_at(&self, p: &Point3) -> (f64, Option<MaterialIndex>);
 
     /// Does a 6-point numerical gradient by default.
-    /// Implementors can assume this is only called when value_at(p) is close to zero.
+    ///
+    /// Implementors should not assume this method is only called
+    /// when value_at(p) is close to zero.
     fn estimate_normal(&self, p: &Point3) -> UnitVec3 {
         let normal_epsilon: f64 = 1e-5;
         let dx =
