@@ -11,12 +11,13 @@ Comes with a few primitives and implementors.
 1. Phong shading
 1. Reflections
 1. Point lights
+1. Rotations
 
 # TODO
-1. Rotations
 1. Materials with the current point as input
 1. Refraction
 1. Figure out where the color banding/reflection waves come from
+1. More light types
 
 # Sources/inspiration
 * https://raytracing.github.io/books/RayTracingInOneWeekend.html (correct camera code)

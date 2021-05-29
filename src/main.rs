@@ -6,7 +6,7 @@ use raymarcher_rs::scene::camera::Camera;
 use raymarcher_rs::scene::scenemap::lights::{AmbientLight, Light};
 use raymarcher_rs::scene::scenemap::material::{Material, MaterialList};
 use raymarcher_rs::scene::scenemap::sdf::combinators::{Difference, Intersect, Union};
-use raymarcher_rs::scene::scenemap::sdf::positioners::{ScaleUniform, Translate};
+use raymarcher_rs::scene::scenemap::sdf::positioners::{Rotate, ScaleUniform, Translate};
 use raymarcher_rs::scene::scenemap::sdf::primitives::{Arbitrary, Cube, Sphere};
 use raymarcher_rs::scene::scenemap::sdf::WithMaterial;
 use raymarcher_rs::scene::scenemap::SceneMap;
@@ -74,6 +74,14 @@ fn main() -> std::io::Result<()> {
         aspect_ratio,
     );
 
+    // let camera = Camera::new(
+    //     Point3::new(0.0, 1.0, 0.0),
+    //     Point3::new(0.0, 5.0, 0.0),
+    //     Vec3::new(1.0, 0.0, 0.0),
+    //     90.0,
+    //     aspect_ratio,
+    // );
+
     let sine_wave = Arbitrary::new(|p| {
         let v: &Vec3 = &p.0;
         // Divide by 2 is to reduce holes in the floor at the cost of slower rendering
@@ -121,14 +129,21 @@ fn main() -> std::io::Result<()> {
         Translate::new(ScaleUniform::new(&sine_wave, 2.0), Vec3::new(0.0, 0.5, 0.0)),
     );
 
-    let contained_cube = Union::new(lattice, wavy_cube);
+    let contained_cube = ScaleUniform::new(
+        Rotate::new_degrees(
+            Union::new(lattice, wavy_cube),
+            22.5,
+            Vec3::new(0.0, 1.0, 0.0).unit(),
+        ),
+        0.9,
+    );
 
     let sdf = Union::new(
         Union::new(
             WithMaterial::new(Cube::new(4.0, Point3::new(0.0, -1.0, 0.0)), red),
             Union::new(
                 Translate::new(wavy_sphere, Vec3::new(1.0, 1.5, 1.0)),
-                Translate::new(contained_cube, Vec3::new(-1.0, 2.0, -1.0)),
+                Translate::new(contained_cube, Vec3::new(-0.7, 1.9, -0.7)),
             ),
         ),
         floor,

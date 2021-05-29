@@ -1,8 +1,10 @@
 use std::ops::{Add, Mul, Sub};
 
+mod quaternion;
 mod vec;
 #[cfg(test)]
 use float_cmp::{ApproxEq, F64Margin};
+pub use quaternion::Quaternion;
 pub use vec::Vec3;
 
 #[derive(Debug, Clone, derive_more::From, derive_more::Into, derive_more::AsRef)]

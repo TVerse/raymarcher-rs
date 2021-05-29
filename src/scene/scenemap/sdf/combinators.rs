@@ -3,9 +3,9 @@
 //! Implementations are encouraged to propagate any [MaterialIndex] whenever possible,
 //! but are not required to do so.
 
-use crate::Point3;
 use crate::scene::scenemap::material::MaterialIndex;
 use crate::scene::scenemap::sdf::Sdf;
+use crate::Point3;
 
 #[derive(Debug, Clone)]
 pub struct Union<A, B> {
